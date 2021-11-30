@@ -1,7 +1,7 @@
 ﻿# (c) Copyright 2016 Autodesk Inc.
 # Filename: DLMemberSizeHardening_v02.ps1
-# Authors: Augusto Schoonewolff, Darren Mar-Elia
-# Re-written and Updated: July 11, 2016 by Ted Osheroff
+# Authors: Ted Osheroff
+# Last Updated: July 11, 2016
 #
 # Purpose:
 # Powershell script to find out all distribtion lists that have more than $memberCountLimit members, restrict them in exchange so that by default only owners of the list can send emailt to it.
@@ -57,13 +57,25 @@ $newLine | Out-File $logpath -Append
 
 $over500Count = $null
 $dlists = $null
-[string] $smtpServer = "smtp.autodesk.com"#[string] $fromAddress="Ted Osheroff <ted.osheroff@autodesk.com>"[string] $fromAddress="EIS Helpdesk <eis.distribution.list.management@autodesk.com>"[string[]]$to = $null[string[]]$cc = $null[string[]]$ccaddress = $null[string[]]$bcc = "Help Desk <help@autodesk.com>", "Ted Osheroff <ted.osheroff@autodesk.com>"#For Testing#[string[]] $to = "Ted Osheroff <ted.osheroff@autodesk.com>"#[string[]] $to = "Ted Osheroff <ted.osheroff@autodesk.com>", "Emily Buskirk <emily.buskirk@autodesk.com>", "Jane Couch <Jane.Couch@autodesk.com>", "Hope Price <hope.price@autodesk.com>"
+
+[string] $smtpServer = "smtp.autodesk.com"
+#[string] $fromAddress="Ted Osheroff <ted.osheroff@autodesk.com>"
+[string] $fromAddress="EIS Helpdesk <eis.distribution.list.management@autodesk.com>"
+[string[]]$to = $null
+[string[]]$cc = $null
+[string[]]$ccaddress = $null
+[string[]]$bcc = "Help Desk <help@autodesk.com>", "Ted Osheroff <ted.osheroff@autodesk.com>"
+
+#For Testing
+#[string[]] $to = "Ted Osheroff <ted.osheroff@autodesk.com>"
+#[string[]] $to = "Ted Osheroff <ted.osheroff@autodesk.com>", "Emily Buskirk <emily.buskirk@autodesk.com>", "Jane Couch <Jane.Couch@autodesk.com>", "Hope Price <hope.price@autodesk.com>"
 #[string[]]$ccAddress="Ted Osheroff <ted.osheroff@autodesk.com>", "Theo22 <theo_22@yahoo.com>"
 
 ###############
 ## Functions ##
 ###############
-function SendEmail{    $subject = "MyDesk Notification: an email list you own has reached 500 members, limiting who can send to it"
+function SendEmail{
+    $subject = "MyDesk Notification: an email list you own has reached 500 members, limiting who can send to it"
     $a = "<a href=https://mydesk.autodesk.com/main/#/do/emaillists target="" _blank"">MyDesk</a>"
 
     $body = "<HTML><HEAD><META http-equiv=""Content-Type"" content=""text/html; charset=iso-8859-1"" /><TITLE></TITLE></HEAD>"
@@ -82,12 +94,15 @@ function SendEmail{    $subject = "MyDesk Notification: an email list you own h
     [string[]] $to = "Ted Osheroff <ted.osheroff@autodesk.com>"
     $to
 
-    #Use for testing email.  Only send to me.    Send-MailMessage -From $fromAddress -To $to -Subject $subject -Body $body -SmtpServer $smtpServer -BodyAsHtml
+    #Use for testing email.  Only send to me.
+    Send-MailMessage -From $fromAddress -To $to -Subject $subject -Body $body -SmtpServer $smtpServer -BodyAsHtml
     #>
     
        #Comment out Send-MailMessage to not send email during testing.
-       Send-MailMessage -From $fromAddress -To $to -Cc $ccaddress -Bcc $bcc -Subject $subject -Body $body -SmtpServer $smtpServer -BodyAsHtml       $msg_sendEmail = "Email Sent for new Authsenders group."
-       $msg_sendEmail | Out-File $logpath -Append} #end sendmail funtion
+       Send-MailMessage -From $fromAddress -To $to -Cc $ccaddress -Bcc $bcc -Subject $subject -Body $body -SmtpServer $smtpServer -BodyAsHtml
+       $msg_sendEmail = "Email Sent for new Authsenders group."
+       $msg_sendEmail | Out-File $logpath -Append
+} #end sendmail funtion
 
 
 function AuthsendersCheck{
@@ -334,13 +349,31 @@ foreach ($group in $dlists) {
                                 ################################################################################
                                 ## Get addresses for sending email notification.  Only send if manager exist. ##
                                 ################################################################################
-                                #If ($group.ManagedBy -ne $null){                                If ($sourceGroupInfo.ManagedBy -ne $null){                                    $manager = $sourceGroupInfo.ManagedBy                                    $managermail = get-qaduser $manager -IncludedProperties mail                                    If ( $managermail -ne $null){                                        $to = $managermail.mail                                        $msg_manageremail = "Mail Addressed To Manager: " + $to 
-                                        $msg_manageremail | Out-File $logpath -Append                                    }                                    #$to
+                                #If ($group.ManagedBy -ne $null){
+                                If ($sourceGroupInfo.ManagedBy -ne $null){
+                                    $manager = $sourceGroupInfo.ManagedBy
+                                    $managermail = get-qaduser $manager -IncludedProperties mail
+                                    If ( $managermail -ne $null){
+                                        $to = $managermail.mail
+
+                                        $msg_manageremail = "Mail Addressed To Manager: " + $to 
+                                        $msg_manageremail | Out-File $logpath -Append
+                                    }
+                                    #$to
                                     
                                     #If no manager exists for To: address then log error and don't worry about checking secondaries.
                                     If ($to -ne $null) {
-                                        If ($sourceGroupInfo.edsvaSecondaryOwners -ne $null){                                                Foreach ($secondary in $sourceGroupInfo.edsvaSecondaryOwners){                                                    If ($secondary -ne $sourceGroupInfo.ManagedBy){                                                        $user = Get-QADUser $secondary -IncludedProperties mail                                                        $cc += $user.mail                                                           $ccaddress = $cc -join ","                                                         $msg_secondaryemail = "Mail CC: " + $cc 
-                                                        #$msg_secondaryemail | Out-File $logpath -Append                                                    }#end If $secondary -ne $sourceGroupInfo.ManagedBy                                                } #end for each secondary in dlists.
+                                        If ($sourceGroupInfo.edsvaSecondaryOwners -ne $null){
+                                                Foreach ($secondary in $sourceGroupInfo.edsvaSecondaryOwners){
+                                                    If ($secondary -ne $sourceGroupInfo.ManagedBy){
+                                                        $user = Get-QADUser $secondary -IncludedProperties mail
+                                                        $cc += $user.mail   
+                                                        $ccaddress = $cc -join "," 
+
+                                                        $msg_secondaryemail = "Mail CC: " + $cc 
+                                                        #$msg_secondaryemail | Out-File $logpath -Append
+                                                    }#end If $secondary -ne $sourceGroupInfo.ManagedBy
+                                                } #end for each secondary in dlists.
                                                 $msg_secondaryemail | Out-File $logpath -Append
                                         } #end if edsvaSecondaryOwners -ne null.
 
